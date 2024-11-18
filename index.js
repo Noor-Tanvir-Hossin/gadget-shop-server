@@ -94,22 +94,35 @@ const dbConnect = async()=>{
 
         //get product
         app.get("/all-product", async(req, res)=>{
-            //name searching, sort by price, filter by category, filter by brand
             const {title, sort,  category, brand} = req.query
+
+            const query={}
+
             if(title){
-                query.title= {regex: title, $options: "i"}
+                query.title= { $regex: title, $options: "i"}
             }
             if(category){
-                query.category= {regex: category, $options: "i"}
+                query.category= { $regex: category, $options: "i"}
             }
             if(brand){
-                query.brand= {regex: brand, $options: "i"}
+                query.brand= brand
             }
             
             const sortOption = sort === 'asc' ? 1 : -1
+            const products= await productCollection.find(query).sort({price: sortOption}).toArray();
+            const totalProducts= await productCollection.countDocuments(query);
+            
+            const productsInfo = await productCollection.find({}, {projection: {category:1, brand:1}}).toArray()
+            const categories= [
+                ...new Set(productsInfo.map((product)=> product.category))
+            ]
+            const brands= [
+                ...new Set(productsInfo.map((product)=> product.brand))
+            ]
 
-            const product= await productCollection.find(query).sort({price: sortOption}).toArray();
-            res.json(product)
+
+
+            res.json({products,brands, categories, totalProducts})
         })
 
         
