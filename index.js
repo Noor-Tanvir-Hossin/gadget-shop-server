@@ -1,7 +1,7 @@
 const express = require("express")
 const cors= require('cors');
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require('dotenv').config()
 const app= express()
 const port= process.env.PORT || 5000;
@@ -94,7 +94,7 @@ const dbConnect = async()=>{
 
         //get product
         app.get("/all-product", async(req, res)=>{
-            const {title, sort,  category, brand} = req.query
+            const {title, sort,  category, brand,page=1, limit=9} = req.query
 
             const query={}
 
@@ -108,16 +108,26 @@ const dbConnect = async()=>{
                 query.brand= brand
             }
             
+            const pageNumber =Number(page)
+            const limitNumber =Number(limit)
+
             const sortOption = sort === 'asc' ? 1 : -1
-            const products= await productCollection.find(query).sort({price: sortOption}).toArray();
+            const products= await productCollection
+            .find(query)
+            .skip((pageNumber -1) *limitNumber)
+            .limit(limitNumber)
+            .sort({price: sortOption})
+            .toArray();
+
+            
             const totalProducts= await productCollection.countDocuments(query);
             
-            const productsInfo = await productCollection.find({}, {projection: {category:1, brand:1}}).toArray()
+            // const productsInfo = await productCollection.find({}, {projection: {category:1, brand:1}}).toArray()
             const categories= [
-                ...new Set(productsInfo.map((product)=> product.category))
+                ...new Set(products.map((product)=> product.category))
             ]
             const brands= [
-                ...new Set(productsInfo.map((product)=> product.brand))
+                ...new Set(products.map((product)=> product.brand))
             ]
 
 
@@ -125,6 +135,19 @@ const dbConnect = async()=>{
             res.json({products,brands, categories, totalProducts})
         })
 
+
+        // added to wishlist
+
+        app.patch('/wishlist/add',async(req, res) =>{
+           
+            const{userEmail, productId} = req.body
+
+            const result = await userCollection.updateOne(
+                {email: userEmail},
+                {$addToSet : {whishList: new ObjectId(String(productId))}}
+            )
+            res.send(result)
+        } )
         
 
     }catch(error){
