@@ -148,6 +148,18 @@ const dbConnect = async()=>{
             )
             res.send(result)
         } )
+        
+        // remove frome whishlist
+        app.patch('/wishlist/remove',async(req, res) =>{
+           
+            const{userEmail, productId} = req.body
+
+            const result = await userCollection.updateOne(
+                {email: userEmail},
+                {$pull : {whishList: new ObjectId(String(productId))}}
+            )
+            res.send(result)
+        } )
 
      // get wishlist
 
