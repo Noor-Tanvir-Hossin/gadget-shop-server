@@ -148,6 +148,26 @@ const dbConnect = async()=>{
             )
             res.send(result)
         } )
+
+     // get wishlist
+
+     app.get("/whishlist/:userId" ,verifyjwt , async(req, res) =>{
+        const userId= req.params.userId
+        const user= await userCollection.findOne({
+            _id: new ObjectId(String(userId))
+        })
+
+        if(!user){
+            return res.send({message: "user not found"})
+        }
+
+        const whishlist= await productCollection.find({_id:{$in: user.whishList || []}}).toArray()
+        res.send(whishlist)
+
+     })
+
+
+
         
 
     }catch(error){
